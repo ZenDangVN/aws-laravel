@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Form, Head, usePage } from '@inertiajs/vue3';
+import { Form, Head, useForm, usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import UploadController from '@/actions/App/Http/Controllers/UploadController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
@@ -25,6 +26,35 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+const avatarInput = ref<HTMLInputElement>();
+const avatarForm = useForm({
+    file: null as File | null,
+    collection: 'avatars',
+    visibility: 'public',
+});
+
+function openAvatarPicker() {
+    avatarInput.value?.click();
+}
+
+function handleAvatarChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    avatarForm.file = file;
+    avatarForm.post(UploadController.store.url(), {
+        forceFormData: true,
+    });
+}
+
+const initials = computed(() => {
+    return (user.value.name ?? '')
+        .split(' ')
+        .slice(0, 2)
+        .map((w: string) => w[0]?.toUpperCase() ?? '')
+        .join('');
+});
 </script>
 
 <template>
@@ -38,6 +68,43 @@ const user = computed(() => page.props.auth.user);
             title="Profile"
             description="Update your name and email address"
         />
+
+        <!-- Avatar section -->
+        <div class="flex items-center gap-4">
+            <div
+                class="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground"
+            >
+                <img
+                    v-if="user.avatar_url"
+                    :src="user.avatar_url"
+                    :alt="user.name"
+                    class="h-full w-full object-cover"
+                />
+                <span v-else class="text-lg font-semibold">{{ initials }}</span>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    :disabled="avatarForm.processing"
+                    @click="openAvatarPicker"
+                >
+                    {{ avatarForm.processing ? 'Uploading…' : 'Change avatar' }}
+                </Button>
+                <p class="text-xs text-muted-foreground">JPG, PNG or WebP, max 2 MB</p>
+                <InputError :message="avatarForm.errors.file" />
+            </div>
+
+            <input
+                ref="avatarInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                @change="handleAvatarChange"
+            />
+        </div>
 
         <Form
             v-bind="ProfileController.update.form()"

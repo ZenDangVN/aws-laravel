@@ -19,7 +19,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->ensureHomeIsSet();
         $this->registerRdsIamConnectors();
+    }
+
+    /**
+     * PHP built-in servers (e.g. Herd) may not set HOME in the environment.
+     * The AWS SDK requires HOME to locate ~/.aws/config for both RDS and S3.
+     * Must run before any AWS SDK client is constructed.
+     */
+    private function ensureHomeIsSet(): void
+    {
+        if (! getenv('HOME') && function_exists('posix_getuid')) {
+            $passwd = posix_getpwuid(posix_getuid());
+            if ($passwd !== false) {
+                putenv('HOME='.$passwd['dir']);
+            }
+        }
     }
 
     /**
@@ -37,24 +53,13 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(
             RdsIamTokenGenerator::class,
-            function ($app): RdsIamTokenGenerator {
-                // PHP built-in servers (e.g. Herd) may not set HOME in the
-                // environment. The AWS SDK requires HOME to locate ~/.aws/config.
-                if (! getenv('HOME') && function_exists('posix_getuid')) {
-                    $passwd = posix_getpwuid(posix_getuid());
-                    if ($passwd !== false) {
-                        putenv('HOME='.$passwd['dir']);
-                    }
-                }
-
-                return new RdsIamTokenGenerator(
-                    cache: $app['cache']->store('array'),
-                    awsRegion: (string) config('rds.aws.region'),
-                    credentialsProvider: CredentialProvider::defaultProvider(
-                        array_filter(['profile' => config('rds.aws.profile')])
-                    ),
-                );
-            }
+            fn ($app): RdsIamTokenGenerator => new RdsIamTokenGenerator(
+                cache: $app['cache']->store('array'),
+                awsRegion: (string) config('rds.aws.region'),
+                credentialsProvider: CredentialProvider::defaultProvider(
+                    array_filter(['profile' => config('rds.aws.profile')])
+                ),
+            )
         );
 
         $this->app->bind(
