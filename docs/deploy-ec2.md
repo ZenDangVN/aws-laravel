@@ -52,7 +52,57 @@ Vào **IAM → Roles → Create role**:
 
 ---
 
-## Bước 2: Cấu hình RDS
+## Bước 2: Cấu hình ElastiCache Serverless Valkey
+
+### 2.1 Tạo ElastiCache Serverless cache
+
+Vào **ElastiCache → Serverless caches → Create serverless cache**:
+- **Engine**: Valkey (hoặc Redis OSS)
+- **Name**: `laravel-app` (hoặc tên tùy chọn)
+- **VPC**: Chọn cùng VPC với EC2 và RDS
+- **Subnet groups**: Chọn private subnets
+- **Security Group**: Tạo hoặc dùng SG cho cache
+
+### 2.2 Security Group cho ElastiCache
+
+Cho phép inbound từ Security Group của EC2:
+- Port `6379` (Valkey/Redis)
+- Source: Security Group ID của EC2
+
+### 2.3 Cấu hình `.env` trên EC2
+
+```dotenv
+# Session / Cache / Queue — chuyển từ database sang Redis
+SESSION_DRIVER=redis
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+
+# ElastiCache Serverless Valkey
+REDIS_CLIENT=predis
+REDIS_SCHEME=tls                                                  # bắt buộc cho Serverless
+REDIS_HOST=<your-cache>.serverless.apne1.cache.amazonaws.com     # chỉ host, không có port
+REDIS_PORT=6379
+REDIS_PASSWORD=                                                    # để trống nếu không dùng AUTH
+REDIS_DB=0
+REDIS_CACHE_DB=0                                                  # Serverless không hỗ trợ SELECT, phải dùng DB 0
+```
+
+> **Quan trọng**:
+> - `REDIS_HOST` chỉ chứa hostname, **không** bao gồm port (`:6379`)
+> - `REDIS_SCHEME=tls` là bắt buộc — ElastiCache Serverless yêu cầu TLS
+> - `REDIS_CACHE_DB=0` (không phải 1) vì Serverless không hỗ trợ lệnh `SELECT`
+> - Key prefix phân biệt cache và queue/session một cách tự động
+
+### 2.4 Test kết nối sau khi deploy
+
+```bash
+php artisan tinker --execute 'Cache::put("test", "valkey-ok", 60); echo Cache::get("test");'
+# Kết quả phải là: valkey-ok
+```
+
+---
+
+## Bước 4: Cấu hình RDS
 
 ### 2.1 Bật IAM Authentication trên RDS instance
 
@@ -84,7 +134,7 @@ Cho phép inbound từ Security Group của EC2:
 
 ---
 
-## Bước 3: Khởi tạo EC2
+## Bước 5: Khởi tạo EC2
 
 ### 3.1 Launch EC2 instance
 
@@ -130,7 +180,7 @@ sudo systemctl enable --now nginx php-fpm
 
 ---
 
-## Bước 4: Deploy ứng dụng
+## Bước 6: Deploy ứng dụng
 
 ### 4.1 Clone và cài dependencies
 
@@ -232,7 +282,7 @@ php artisan event:cache
 
 ---
 
-## Bước 5: Cấu hình Nginx
+## Bước 7: Cấu hình Nginx
 
 Tạo file `/etc/nginx/conf.d/laravel.conf`:
 
@@ -282,7 +332,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
-## Bước 6: Cấu hình PHP-FPM
+## Bước 8: Cấu hình PHP-FPM
 
 Chỉnh `/etc/php-fpm.d/www.conf`:
 
@@ -306,7 +356,7 @@ sudo systemctl restart php-fpm
 
 ---
 
-## Bước 7: Queue Worker (Systemd)
+## Bước 9: Queue Worker (Systemd)
 
 Tạo file `/etc/systemd/system/laravel-queue.service`:
 
@@ -341,7 +391,7 @@ sudo systemctl status laravel-queue
 
 ---
 
-## Bước 8: Scheduled Tasks (Cron)
+## Bước 10: Scheduled Tasks (Cron)
 
 ```bash
 sudo -u nginx crontab -e
@@ -355,7 +405,7 @@ Thêm dòng:
 
 ---
 
-## Bước 9: ALB + HTTPS (tùy chọn)
+## Bước 11: ALB + HTTPS (tùy chọn)
 
 Nếu dùng **Application Load Balancer**:
 
@@ -381,7 +431,7 @@ TRUSTPROXIES_PROXIES=*
 
 ---
 
-## Bước 10: Deploy script (CI/CD)
+## Bước 12: Deploy script (CI/CD)
 
 Script deploy khi có code mới (`/usr/local/bin/deploy.sh`):
 
