@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Doughnut, Line } from 'vue-chartjs';
 import {
     ArcElement,
@@ -25,6 +26,8 @@ const props = defineProps<{
     recent_scans: RfidScan[];
     scans_per_hour: Record<string, number>;
 }>();
+
+const { t } = useI18n();
 
 defineOptions({
     layout: {
@@ -58,16 +61,8 @@ const statusColors: Record<string, string> = {
     delivered: '#22c55e',
 };
 
-const statusLabels: Record<string, string> = {
-    pending: 'Chờ xử lý',
-    in_transit: 'Đang vận chuyển',
-    at_warehouse: 'Tại kho',
-    out_for_delivery: 'Đang giao',
-    delivered: 'Đã giao',
-};
-
 const doughnutData = {
-    labels: ['Chờ xử lý', 'Đang vận chuyển', 'Tại kho', 'Đang giao', 'Đã giao'],
+    labels: ['pending', 'in_transit', 'at_warehouse', 'out_for_delivery', 'delivered'],
     datasets: [{
         data: [
             props.stats.pending,
@@ -85,7 +80,7 @@ const hours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')
 const lineData = {
     labels: hours,
     datasets: [{
-        label: 'Lượt quét',
+        label: 'Scans',
         data: hours.map((_, i) => props.scans_per_hour[String(i).padStart(2, '0')] ?? 0),
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59,130,246,0.1)',
@@ -98,14 +93,14 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
 </script>
 
 <template>
-    <Head title="Logistics Dashboard" />
+    <Head :title="t('logistics.dashboard.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
         <!-- KPI Cards -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader class="pb-2">
-                    <CardTitle class="text-sm font-medium text-muted-foreground">Tổng kiện hàng</CardTitle>
+                    <CardTitle class="text-sm font-medium text-muted-foreground">{{ t('logistics.dashboard.totalPackages') }}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="text-3xl font-bold">{{ stats.total_packages }}</div>
@@ -113,7 +108,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
             </Card>
             <Card>
                 <CardHeader class="pb-2">
-                    <CardTitle class="text-sm font-medium text-muted-foreground">Lô hàng đang chạy</CardTitle>
+                    <CardTitle class="text-sm font-medium text-muted-foreground">{{ t('logistics.dashboard.activeShipments') }}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="text-3xl font-bold text-blue-500">{{ stats.active_shipments }}</div>
@@ -121,7 +116,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
             </Card>
             <Card>
                 <CardHeader class="pb-2">
-                    <CardTitle class="text-sm font-medium text-muted-foreground">Xe đang vận chuyển</CardTitle>
+                    <CardTitle class="text-sm font-medium text-muted-foreground">{{ t('logistics.dashboard.vehiclesOnRoute') }}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="text-3xl font-bold text-violet-500">{{ stats.vehicles_on_route }}</div>
@@ -129,7 +124,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
             </Card>
             <Card>
                 <CardHeader class="pb-2">
-                    <CardTitle class="text-sm font-medium text-muted-foreground">Lượt quét hôm nay</CardTitle>
+                    <CardTitle class="text-sm font-medium text-muted-foreground">{{ t('logistics.dashboard.scansToday') }}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="text-3xl font-bold text-amber-500">{{ stats.scans_today }}</div>
@@ -141,7 +136,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
         <div class="grid gap-4 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle>Trạng thái kiện hàng</CardTitle>
+                    <CardTitle>{{ t('logistics.dashboard.packageStatus') }}</CardTitle>
                 </CardHeader>
                 <CardContent class="h-64">
                     <Doughnut :data="doughnutData" :options="{ ...chartOptions, plugins: { legend: { display: true, position: 'right' } } }" />
@@ -149,7 +144,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
             </Card>
             <Card>
                 <CardHeader>
-                    <CardTitle>Lượt quét RFID theo giờ (24h)</CardTitle>
+                    <CardTitle>{{ t('logistics.dashboard.scansPerHour') }}</CardTitle>
                 </CardHeader>
                 <CardContent class="h-64">
                     <Line :data="lineData" :options="chartOptions" />
@@ -162,7 +157,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
             <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                     <span class="inline-block h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                    Live RFID Feed
+                    {{ t('logistics.dashboard.liveFeed') }}
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -170,10 +165,10 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
                     <table class="w-full text-sm">
                         <thead class="sticky top-0 bg-card">
                             <tr class="border-b text-left text-muted-foreground">
-                                <th class="pb-2 pr-4">Thời gian</th>
-                                <th class="pb-2 pr-4">RFID / Tracking</th>
-                                <th class="pb-2 pr-4">Vị trí</th>
-                                <th class="pb-2">Trạng thái</th>
+                                <th class="pb-2 pr-4">{{ t('logistics.dashboard.columns.time') }}</th>
+                                <th class="pb-2 pr-4">{{ t('logistics.dashboard.columns.rfidTracking') }}</th>
+                                <th class="pb-2 pr-4">{{ t('logistics.dashboard.columns.location') }}</th>
+                                <th class="pb-2">{{ t('logistics.dashboard.columns.status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,7 +178,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
                                 class="border-b last:border-0"
                             >
                                 <td class="py-2 pr-4 font-mono text-xs text-muted-foreground">
-                                    {{ new Date(scan.scanned_at).toLocaleTimeString('vi-VN') }}
+                                    {{ new Date(scan.scanned_at).toLocaleTimeString() }}
                                 </td>
                                 <td class="py-2 pr-4">
                                     <div class="font-mono text-xs">{{ scan.rfid_tag }}</div>
@@ -194,13 +189,13 @@ const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { 
                                 </td>
                                 <td class="py-2">
                                     <Badge variant="outline">
-                                        {{ statusLabels[scan.package_status] ?? scan.package_status }}
+                                        {{ t(`packageStatus.${scan.package_status}`) }}
                                     </Badge>
                                 </td>
                             </tr>
                             <tr v-if="liveScans.length === 0 && recent_scans.length === 0">
                                 <td colspan="4" class="py-8 text-center text-muted-foreground">
-                                    Chưa có dữ liệu quét RFID
+                                    {{ t('logistics.dashboard.empty') }}
                                 </td>
                             </tr>
                         </tbody>

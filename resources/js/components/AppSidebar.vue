@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { i18n } from '@/plugins/i18n';
 import { BookOpen, FolderGit2, LayoutGrid, Package, PackageSearch, Truck, Warehouse } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -18,41 +20,43 @@ import { logistics } from '@/lib/logistics';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const { t } = i18n.global;
+
+const mainNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Dashboard',
+        title: t('nav.dashboard'),
         href: dashboard(),
         icon: LayoutGrid,
     },
-];
+]);
 
-const logisticsNavItems: NavItem[] = [
+const logisticsNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Logistics',
+        title: t('nav.logistics'),
         href: logistics.dashboard(),
         icon: PackageSearch,
     },
     {
-        title: 'Kiện hàng',
+        title: t('nav.packages'),
         href: logistics.packages.index(),
         icon: Package,
     },
     {
-        title: 'Lô hàng',
+        title: t('nav.shipments'),
         href: logistics.shipments.index(),
         icon: Truck,
     },
     {
-        title: 'Kho',
+        title: t('nav.warehouses'),
         href: logistics.warehouses.index(),
         icon: Warehouse,
     },
     {
-        title: 'Phương tiện',
+        title: t('nav.vehicles'),
         href: logistics.vehicles.index(),
         icon: Truck,
     },
-];
+]);
 
 const footerNavItems: NavItem[] = [
     {

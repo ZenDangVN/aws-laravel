@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Shipment, ShipmentStatus } from '@/types/logistics';
 import { logistics } from '@/lib/logistics';
+
+const { t } = useI18n();
 
 defineProps<{
     shipments: {
@@ -18,18 +21,18 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Logistics', href: logistics.dashboard() },
-            { title: 'Lô hàng', href: logistics.shipments.index() },
+            { title: 'Shipments', href: logistics.shipments.index() },
         ],
     },
 });
 
-const statuses: { value: ShipmentStatus | ''; label: string }[] = [
-    { value: '', label: 'Tất cả' },
-    { value: 'pending', label: 'Chờ' },
-    { value: 'loading', label: 'Đang tải' },
-    { value: 'in_transit', label: 'Đang vận chuyển' },
-    { value: 'arrived', label: 'Đã đến' },
-    { value: 'completed', label: 'Hoàn thành' },
+const statuses: { value: ShipmentStatus | '' }[] = [
+    { value: '' },
+    { value: 'pending' },
+    { value: 'loading' },
+    { value: 'in_transit' },
+    { value: 'arrived' },
+    { value: 'completed' },
 ];
 
 const statusVariant: Record<ShipmentStatus, 'default' | 'secondary' | 'outline'> = {
@@ -46,11 +49,11 @@ function applyFilter(status: string) {
 </script>
 
 <template>
-    <Head title="Lô hàng" />
+    <Head :title="t('logistics.shipments.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold">Lô hàng</h1>
+            <h1 class="text-2xl font-bold">{{ t('logistics.shipments.title') }}</h1>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -61,7 +64,7 @@ function applyFilter(status: string) {
                 size="sm"
                 @click="applyFilter(s.value)"
             >
-                {{ s.label }}
+                {{ s.value ? t(`shipmentStatus.${s.value}`) : t('logistics.packages.all') }}
             </Button>
         </div>
 
@@ -70,11 +73,11 @@ function applyFilter(status: string) {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b text-left text-muted-foreground">
-                            <th class="px-4 py-3">Mã lô</th>
-                            <th class="px-4 py-3">Từ → Đến</th>
-                            <th class="px-4 py-3">Xe</th>
-                            <th class="px-4 py-3">Trạng thái</th>
-                            <th class="px-4 py-3">Kiện</th>
+                            <th class="px-4 py-3">{{ t('logistics.shipments.columns.ref') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.shipments.columns.route') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.shipments.columns.vehicle') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.shipments.columns.status') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.shipments.columns.packages') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,12 +94,12 @@ function applyFilter(status: string) {
                             </td>
                             <td class="px-4 py-3 font-mono text-xs">{{ shipment.vehicle?.plate_number ?? '—' }}</td>
                             <td class="px-4 py-3">
-                                <Badge :variant="statusVariant[shipment.status]">{{ shipment.status }}</Badge>
+                                <Badge :variant="statusVariant[shipment.status]">{{ t(`shipmentStatus.${shipment.status}`) }}</Badge>
                             </td>
                             <td class="px-4 py-3">{{ shipment.packages_count ?? 0 }}</td>
                         </tr>
                         <tr v-if="shipments.data.length === 0">
-                            <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">Không có lô hàng nào</td>
+                            <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">{{ t('logistics.shipments.empty') }}</td>
                         </tr>
                     </tbody>
                 </table>

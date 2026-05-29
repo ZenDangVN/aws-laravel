@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { Package, PackageStatus } from '@/types/logistics';
 import { logistics } from '@/lib/logistics';
+
+const { t } = useI18n();
 
 defineProps<{
     packages: {
@@ -21,18 +24,18 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Logistics', href: logistics.dashboard() },
-            { title: 'Kiện hàng', href: logistics.packages.index() },
+            { title: 'Packages', href: logistics.packages.index() },
         ],
     },
 });
 
-const statuses: { value: PackageStatus | ''; label: string }[] = [
-    { value: '', label: 'Tất cả' },
-    { value: 'pending', label: 'Chờ xử lý' },
-    { value: 'in_transit', label: 'Đang vận chuyển' },
-    { value: 'at_warehouse', label: 'Tại kho' },
-    { value: 'out_for_delivery', label: 'Đang giao' },
-    { value: 'delivered', label: 'Đã giao' },
+const statuses: { value: PackageStatus | '' }[] = [
+    { value: '' },
+    { value: 'pending' },
+    { value: 'in_transit' },
+    { value: 'at_warehouse' },
+    { value: 'out_for_delivery' },
+    { value: 'delivered' },
 ];
 
 const statusVariant: Record<PackageStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -55,18 +58,24 @@ function doSearch() {
 </script>
 
 <template>
-    <Head title="Kiện hàng" />
+    <Head :title="t('logistics.packages.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold">Kiện hàng</h1>
+            <h1 class="text-2xl font-bold">{{ t('logistics.packages.title') }}</h1>
         </div>
 
         <!-- Filters -->
         <div class="flex flex-wrap gap-2">
-            <Input v-model="search" placeholder="Tìm tracking / RFID..." class="w-64" @keyup.enter="doSearch" />
-            <Button v-for="s in statuses" :key="s.value" :variant="filters.status === s.value || (!filters.status && !s.value) ? 'default' : 'outline'" size="sm" @click="applyFilter(s.value)">
-                {{ s.label }}
+            <Input v-model="search" :placeholder="t('logistics.packages.searchPlaceholder')" class="w-64" @keyup.enter="doSearch" />
+            <Button
+                v-for="s in statuses"
+                :key="s.value"
+                :variant="filters.status === s.value || (!filters.status && !s.value) ? 'default' : 'outline'"
+                size="sm"
+                @click="applyFilter(s.value)"
+            >
+                {{ s.value ? t(`packageStatus.${s.value}`) : t('logistics.packages.all') }}
             </Button>
         </div>
 
@@ -75,11 +84,11 @@ function doSearch() {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b text-left text-muted-foreground">
-                            <th class="px-4 py-3">Tracking</th>
-                            <th class="px-4 py-3">RFID Tag</th>
-                            <th class="px-4 py-3">Trạng thái</th>
-                            <th class="px-4 py-3">Vị trí hiện tại</th>
-                            <th class="px-4 py-3">Cập nhật</th>
+                            <th class="px-4 py-3">{{ t('logistics.packages.columns.tracking') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.packages.columns.rfidTag') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.packages.columns.status') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.packages.columns.location') }}</th>
+                            <th class="px-4 py-3">{{ t('logistics.packages.columns.updatedAt') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,17 +100,17 @@ function doSearch() {
                             </td>
                             <td class="px-4 py-3 font-mono text-xs">{{ pkg.rfid_tag }}</td>
                             <td class="px-4 py-3">
-                                <Badge :variant="statusVariant[pkg.status]">{{ pkg.status }}</Badge>
+                                <Badge :variant="statusVariant[pkg.status]">{{ t(`packageStatus.${pkg.status}`) }}</Badge>
                             </td>
                             <td class="px-4 py-3 text-muted-foreground">
                                 {{ pkg.current_warehouse?.name ?? pkg.current_vehicle?.plate_number ?? '—' }}
                             </td>
                             <td class="px-4 py-3 text-muted-foreground">
-                                {{ new Date(pkg.updated_at).toLocaleString('vi-VN') }}
+                                {{ new Date(pkg.updated_at).toLocaleString() }}
                             </td>
                         </tr>
                         <tr v-if="packages.data.length === 0">
-                            <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">Không có kiện hàng nào</td>
+                            <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">{{ t('logistics.packages.empty') }}</td>
                         </tr>
                     </tbody>
                 </table>
