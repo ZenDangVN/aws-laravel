@@ -31,4 +31,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    build: {
+        rolldownOptions: {
+            onInvalidAnnotation: 'ignore',
+        },
+    },
 });

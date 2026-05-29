@@ -391,7 +391,78 @@ sudo systemctl status laravel-queue
 
 ---
 
-## Bước 10: Scheduled Tasks (Cron)
+## Bước 10: Reverb WebSocket Server (Systemd)
+
+Tạo file `/etc/systemd/system/laravel-reverb.service`:
+
+```ini
+[Unit]
+Description=Laravel Reverb WebSocket Server
+After=network.target
+
+[Service]
+User=nginx
+Group=nginx
+WorkingDirectory=/var/www/laravel
+ExecStart=/usr/bin/php /var/www/laravel/artisan reverb:start \
+  --host=0.0.0.0 \
+  --port=8080
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/laravel/storage/logs/reverb.log
+StandardError=append:/var/www/laravel/storage/logs/reverb.log
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now laravel-reverb
+sudo systemctl status laravel-reverb
+```
+
+### Cấu hình nginx proxy WebSocket
+
+Thêm vào `/etc/nginx/conf.d/laravel.conf` (trong `server` block):
+
+```nginx
+location /app {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 60s;
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Cấu hình `.env` trên EC2
+
+```dotenv
+REVERB_APP_ID=<giá_trị_từ_env_local>
+REVERB_APP_KEY=<giá_trị_từ_env_local>
+REVERB_APP_SECRET=<giá_trị_từ_env_local>
+REVERB_HOST=yourdomain.com    # domain của app, không phải localhost
+REVERB_PORT=443               # ALB terminate SSL → browser dùng wss:// port 443
+REVERB_SCHEME=https
+
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+> **Quan trọng:** Khi có ALB terminate SSL, browser kết nối `wss://yourdomain.com/app` (port 443), ALB forward về EC2 port 80, nginx proxy về Reverb port 8080. Không cần mở port 8080 ra ngoài.
+
+---
+
+## Bước 11: Scheduled Tasks (Cron)
 
 ```bash
 sudo -u nginx crontab -e
@@ -405,7 +476,7 @@ Thêm dòng:
 
 ---
 
-## Bước 11: ALB + HTTPS (tùy chọn)
+## Bước 12: ALB + HTTPS (tùy chọn)
 
 Nếu dùng **Application Load Balancer**:
 
@@ -431,7 +502,7 @@ TRUSTPROXIES_PROXIES=*
 
 ---
 
-## Bước 12: Deploy script (CI/CD)
+## Bước 13: Deploy script (CI/CD)
 
 Script deploy khi có code mới (`/usr/local/bin/deploy.sh`):
 
@@ -448,6 +519,9 @@ git pull origin main
 echo "→ Installing dependencies..."
 composer install --no-dev --optimize-autoloader
 
+echo "→ Generating Wayfinder TypeScript routes..."
+php artisan wayfinder:generate
+
 echo "→ Building assets..."
 npm ci && npm run build && rm -rf node_modules
 
@@ -461,8 +535,9 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
-echo "→ Restarting queue worker..."
+echo "→ Restarting services..."
 sudo systemctl restart laravel-queue
+sudo systemctl restart laravel-reverb
 
 echo "✓ Deploy complete"
 ```
