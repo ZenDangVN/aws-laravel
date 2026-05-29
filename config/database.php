@@ -129,8 +129,8 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'require',
-            'sslrootcert' => env('RDS_CA_BUNDLE'),
+            'sslmode' => env('RDS_SSLMODE', 'verify-ca'),
+            'sslrootcert' => env('RDS_CA_BUNDLE') ?: null,
         ],
 
         'sqlsrv' => [

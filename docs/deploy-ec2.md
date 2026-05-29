@@ -190,7 +190,7 @@ RDS_PORT=5432
 RDS_DATABASE=your_database
 RDS_USERNAME=postgres
 RDS_DRIVER=pgsql
-RDS_CA_BUNDLE=/var/www/laravel/storage/rds/global-bundle.pem
+RDS_CA_BUNDLE=/var/www/aws-laravel/storage/rds/global-bundle.pem
 ```
 
 > **Quan trọng**: Không cần `AWS_ACCESS_KEY_ID` hay `AWS_SECRET_ACCESS_KEY` trên EC2. SDK tự lấy credentials từ **Instance Metadata Service (IMDS)** qua IAM Role đã gắn.
@@ -198,10 +198,10 @@ RDS_CA_BUNDLE=/var/www/laravel/storage/rds/global-bundle.pem
 ### 4.3 Tải RDS SSL Certificate
 
 ```bash
-mkdir -p /var/www/laravel/storage/rds
+mkdir -p storage/rds
 
 # Download global bundle (bao gồm tất cả regions)
-curl -o /var/www/laravel/storage/rds/global-bundle.pem \
+curl -o storage/rds/global-bundle.pem \
   https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 ```
 
