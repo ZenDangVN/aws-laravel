@@ -185,36 +185,44 @@ return [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
+            // Provides password/scheme to nodes auto-discovered by the cluster client
+            'parameters' => [
+                'scheme' => env('REDIS_SCHEME', 'tcp'),
+                'password' => env('REDIS_PASSWORD'),
+                'ssl' => ['verify_peer' => false],
+            ],
         ],
 
-        'default' => [
-            'scheme' => env('REDIS_SCHEME', 'tcp'),
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_DB', '0'),
-            'ssl' => ['verify_peer' => false],
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
-        ],
+        'clusters' => [
 
-        'cache' => [
-            'scheme' => env('REDIS_SCHEME', 'tcp'),
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD'),
-            'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_CACHE_DB', '0'),
-            'ssl' => ['verify_peer' => false],
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+            'default' => [
+                [
+                    'scheme' => env('REDIS_SCHEME', 'tcp'),
+                    'host' => env('REDIS_HOST', '127.0.0.1'),
+                    'port' => env('REDIS_PORT', '6379'),
+                    'password' => env('REDIS_PASSWORD'),
+                    'ssl' => ['verify_peer' => false],
+                    'max_retries' => env('REDIS_MAX_RETRIES', 3),
+                    'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+                    'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+                    'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+                ],
+            ],
+
+            'cache' => [
+                [
+                    'scheme' => env('REDIS_SCHEME', 'tcp'),
+                    'host' => env('REDIS_HOST', '127.0.0.1'),
+                    'port' => env('REDIS_PORT', '6379'),
+                    'password' => env('REDIS_PASSWORD'),
+                    'ssl' => ['verify_peer' => false],
+                    'max_retries' => env('REDIS_MAX_RETRIES', 3),
+                    'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+                    'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+                    'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+                ],
+            ],
+
         ],
 
     ],
