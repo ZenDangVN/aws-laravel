@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUploadRequest;
+use App\Jobs\ProcessImageUpload;
 use App\Models\Upload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,12 +22,13 @@ class UploadController extends Controller
         $visibility = $request->input('visibility', 'private');
 
         $extension = $file->getClientOriginalExtension();
-        $path = $collection.'/'.Str::uuid().'.'.$extension;
+        $uuid = Str::uuid();
+        $path = $collection.'/original/'.$uuid.'.'.$extension;
 
         Storage::disk('s3')->putFileAs(
-            $collection,
+            $collection.'/original',
             $file,
-            basename($path),
+            $uuid.'.'.$extension,
             ['visibility' => $visibility],
         );
 
@@ -54,6 +56,8 @@ class UploadController extends Controller
             $request->user()->update(['avatar' => $path]);
         }
 
+        ProcessImageUpload::dispatch($upload);
+
         if ($request->inertia()) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('File uploaded successfully.')]);
 
@@ -80,7 +84,13 @@ class UploadController extends Controller
 
         Storage::disk($upload->disk)->delete($upload->path);
 
-        if ($request->user()->avatar === $upload->path) {
+        foreach ($upload->variants ?? [] as $variantPath) {
+            Storage::disk($upload->disk)->delete($variantPath);
+        }
+
+        $avatarPaths = array_merge([$upload->path], array_values($upload->variants ?? []));
+
+        if (in_array($request->user()->avatar, $avatarPaths, strict: true)) {
             $request->user()->update(['avatar' => null]);
         }
 

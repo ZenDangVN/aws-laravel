@@ -10,11 +10,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['user_id', 'disk', 'path', 'visibility', 'collection', 'original_name', 'mime_type', 'size'])]
+#[Fillable(['user_id', 'disk', 'path', 'visibility', 'collection', 'original_name', 'mime_type', 'size', 'processed', 'variants'])]
 class Upload extends Model
 {
     /** @use HasFactory<UploadFactory> */
     use HasFactory;
+
+    protected $casts = [
+        'processed' => 'boolean',
+        'variants' => 'array',
+    ];
 
     public function user(): BelongsTo
     {
@@ -23,13 +28,19 @@ class Upload extends Model
 
     public function url(): string
     {
-        if ($this->visibility === 'public' && config('filesystems.disks.'.$this->disk.'.url')) {
-            return Storage::disk($this->disk)->url($this->path);
+        $path = ($this->processed && isset($this->variants['medium']))
+            ? $this->variants['medium']
+            : $this->path;
+
+        $disk = $this->disk;
+
+        if ($this->visibility === 'public' && config('filesystems.disks.'.$disk.'.url')) {
+            return Storage::disk($disk)->url($path);
         }
 
         $expiry = $this->visibility === 'public' ? now()->addHours(8) : now()->addMinutes(15);
 
-        return Storage::disk($this->disk)->temporaryUrl($this->path, $expiry);
+        return Storage::disk($disk)->temporaryUrl($path, $expiry);
     }
 
     /** @param  Builder<Upload>  $query */
