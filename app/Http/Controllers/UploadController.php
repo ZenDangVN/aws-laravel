@@ -29,7 +29,6 @@ class UploadController extends Controller
             $collection.'/original',
             $file,
             $uuid.'.'.$extension,
-            ['visibility' => $visibility],
         );
 
         $upload = $request->user()->uploads()->create([

@@ -41,7 +41,6 @@ class ProcessImageUpload implements ShouldQueue
             $variantPath = $baseDir.'/'.$name.'/'.$uuid.'.webp';
 
             Storage::disk($this->upload->disk)->put($variantPath, (string) $encoded, [
-                'visibility' => $this->upload->visibility,
                 'CacheControl' => 'public, max-age=31536000, immutable',
                 'ContentType' => 'image/webp',
             ]);
