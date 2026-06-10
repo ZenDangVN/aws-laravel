@@ -27,6 +27,7 @@ class UploadController extends Controller
             $collection,
             $file,
             basename($path),
+            ['visibility' => $visibility],
         );
 
         $upload = $request->user()->uploads()->create([

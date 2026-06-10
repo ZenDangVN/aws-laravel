@@ -41,7 +41,7 @@ test('store creates upload record and puts file on s3', function () {
     Storage::disk('s3')->assertExists($upload->path);
 });
 
-test('store with public visibility returns 8-hour signed url', function () {
+test('store with public visibility returns permanent url', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -54,11 +54,11 @@ test('store with public visibility returns 8-hour signed url', function () {
     $response->assertOk();
 
     $url = $response->json('url');
-    expect($url)->toContain('expiration');
-
-    $expiration = (int) parse_url($url, PHP_URL_QUERY);
-    parse_str(parse_url($url, PHP_URL_QUERY), $params);
-    expect((int) $params['expiration'])->toBeGreaterThan(now()->addHours(7)->timestamp);
+    expect($url)
+        ->toBeString()
+        ->not->toBeEmpty()
+        ->not->toContain('expiration')
+        ->not->toContain('X-Amz-Signature');
 });
 
 test('store with private visibility returns 15-minute signed url', function () {

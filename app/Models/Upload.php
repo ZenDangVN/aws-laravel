@@ -23,11 +23,11 @@ class Upload extends Model
 
     public function url(): string
     {
-        $expiry = $this->visibility === 'public'
-            ? now()->addHours(8)
-            : now()->addMinutes(15);
+        if ($this->visibility === 'public') {
+            return Storage::disk($this->disk)->url($this->path);
+        }
 
-        return Storage::disk($this->disk)->temporaryUrl($this->path, $expiry);
+        return Storage::disk($this->disk)->temporaryUrl($this->path, now()->addMinutes(15));
     }
 
     /** @param  Builder<Upload>  $query */
