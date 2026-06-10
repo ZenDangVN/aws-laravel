@@ -3,6 +3,7 @@
 use App\Models\Upload;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -41,7 +42,9 @@ test('store creates upload record and puts file on s3', function () {
     Storage::disk('s3')->assertExists($upload->path);
 });
 
-test('store with public visibility returns permanent url', function () {
+test('store with public visibility returns permanent url when cloudfront is configured', function () {
+    Config::set('filesystems.disks.s3.url', 'https://cdn.example.com');
+
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -59,6 +62,27 @@ test('store with public visibility returns permanent url', function () {
         ->not->toBeEmpty()
         ->not->toContain('expiration')
         ->not->toContain('X-Amz-Signature');
+});
+
+test('store with public visibility returns signed url when cloudfront is not configured', function () {
+    Config::set('filesystems.disks.s3.url', null);
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->postJson(route('uploads.store'), [
+        'file' => UploadedFile::fake()->image('photo.png'),
+        'collection' => 'images',
+        'visibility' => 'public',
+    ]);
+
+    $response->assertOk();
+
+    $url = $response->json('url');
+    expect($url)->toContain('expiration');
+
+    parse_str(parse_url($url, PHP_URL_QUERY), $params);
+    expect((int) $params['expiration'])->toBeGreaterThan(now()->addHours(7)->timestamp);
 });
 
 test('store with private visibility returns 15-minute signed url', function () {

@@ -37,7 +37,11 @@ class User extends Authenticatable implements PasskeyUser
                 return null;
             }
 
-            return Storage::disk('s3')->url($this->avatar);
+            if (config('filesystems.disks.s3.url')) {
+                return Storage::disk('s3')->url($this->avatar);
+            }
+
+            return Storage::disk('s3')->temporaryUrl($this->avatar, now()->addHours(8));
         });
     }
 
